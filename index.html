@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faiz Developer - Pelacak Lokasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dasar: '#000000',
+                        hijauLayar: '#39FF14',
+                        biruNyala: '#00FFFF',
+                        abuGelap: '#0a0a0a',
+                        merahNyala: '#FF0000',
+                        unguNyala: '#B000FF',
+                    },
+                    fontFamily: {
+                        kode: ['Consolas', 'Monaco', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .teks-nyala { 
+                text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14, 0 0 20px #39FF14; 
+            }
+            .teks-merah { 
+                text-shadow: 0 0 5px #FF0000, 0 0 10px #FF0000, 0 0 20px #FF0000; 
+            }
+            .teks-ungu { 
+                text-shadow: 0 0 5px #B000FF, 0 0 10px #B000FF, 0 0 20px #B000FF; 
+            }
+            .bingkai-nyala { 
+                box-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14 inset; 
+            }
+            .bingkai-merah { 
+                box-shadow: 0 0 5px #FF0000, 0 0 10px #FF0000 inset; 
+            }
+            .bingkai-ungu { 
+                box-shadow: 0 0 5px #B000FF, 0 0 10px #B000FF inset; 
+            }
+            .kedip { 
+                animation: kedip 1.2s infinite; 
+            }
+            @keyframes kedip { 
+                0%, 100% { opacity: 1; } 
+                50% { opacity: 0.2; } 
+            }
+            .bintang { 
+                position: absolute; 
+                width: 2px; 
+                height: 2px; 
+                background: #ffffff; 
+                border-radius: 50%; 
+                animation: jatuh 4s linear infinite; 
+            }
+            @keyframes jatuh { 
+                from { transform: translateY(-10px); opacity: 0; } 
+                to { transform: translateY(100vh); opacity: 1; } 
+            }
+            .teks-jalan {
+                background: linear-gradient(90deg, transparent, #39FF14, transparent);
+                background-size: 200% 100%;
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                animation: jalankode 3s linear infinite;
+            }
+            .teks-jalan-merah {
+                background: linear-gradient(90deg, transparent, #FF0000, transparent);
+                background-size: 200% 100%;
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                animation: jalankode 3s linear infinite;
+            }
+            .teks-jalan-ungu {
+                background: linear-gradient(90deg, transparent, #B000FF, transparent);
+                background-size: 200% 100%;
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                animation: jalankode 3s linear infinite;
+            }
+            @keyframes jalankode {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+            .scroll-hidden {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scroll-hidden::-webkit-scrollbar {
+                display: none;
+            }
+            .menu-anim {
+                transition: all 0.3s ease;
+            }
+            .frame-video {
+                width: 100%;
+                height: 450px;
+                border: none;
+                border-radius: 8px;
+            }
+            .kotak-chat {
+                height: 450px;
+                overflow-y: auto;
+            }
+            .kotak-komentar {
+                height: 400px;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-dasar text-hijauLayar font-kode overflow-x-hidden scroll-hidden">
+
+    <!-- LOADING 3 DETIK -->
+    <div id="layarMuat" class="fixed inset-0 bg-dasar z-50 flex flex-col items-center justify-center">
+        <div class="relative w-20 h-20 mb-5">
+            <div class="absolute w-full h-full border-4 border-hijauLayar/20 rounded-full"></div>
+            <div class="absolute w-full h-full border-4 border-transparent border-t-hijauLayar rounded-full animate-spin"></div>
+        </div>
+        <h2 class="text-3xl font-bold teks-nyala">= Faiz Developer =</h2>
+        <p class="mt-2 text-biruNyala kedip">> MEMUAT SISTEM <</p>
+        <p class="mt-4 text-xs teks-jalan">// SISTEM SIAP DIGUNAKAN //</p>
+    </div>
+
+    <!-- EFEK BINTANG JATUH -->
+    <div id="latarBintang" class="fixed inset-0 pointer-events-none"></div>
+
+    <!-- HALAMAN UTAMA -->
+    <div id="halamanUtama" class="hidden relative z-10 min-h-screen">
+        
+        <!-- TULISAN BERJALAN SELAMAT DATANG -->
+        <div class="bg-abuGelap/80 py-2 border-b border-hijauLayar/30 overflow-hidden">
+            <p class="teks-jalan text-center text-lg font-bold">= SELAMAT DATANG DI WEBSITE KAMI = = FAIZ DEVELOPER PELACAK LOKASI =</p>
+        </div>
+
+        <!-- JAM & TANGGAL OTOMATIS -->
+        <div class="fixed top-4 left-4 z-50 bg-abuGelap/70 px-3 py-2 rounded border border-hijauLayar/30 bingkai-nyala">
+            <p class="text-sm text-biruNyala" id="jamTanggal"></p>
+        </div>
+
+        <!-- TOMBOL BUKA TUTUP MENU -->
+        <button id="tombolMenu" class="fixed top-4 right-4 z-50 bg-abuGelap/80 border border-hijauLayar/50 bingkai-nyala w-12 h-12 rounded-full flex items-center justify-center teks-nyala text-xl">
+            <i class="fa fa-bars"></i>
+        </button>
+
+        <!-- MENU NAVIGASI BISA DIBUKA & DITUTUP -->
+        <div id="menuSamping" class="fixed top-0 right-0 h-full w-[280px] bg-abuGelap/95 border-l border-hijauLayar/30 bingkai-nyala z-[60] translate-x-full menu-anim">
+            <div class="p-4 h-full flex flex-col">
+                <!-- TUTUP MENU -->
+                <button id="tutupMenu" class="text-right text-hijauLayar text-xl mb-4 hover:text-biruNyala">
+                    <i class="fa fa-times"></i>
+                </button>
+
+                <!-- LOGO BULAT -->
+                <div class="text-center mb-6">
+                    <img src="https://cdn.phototourl.com/free/2026-05-26-a59601a2-bfbf-4bec-a088-b30e85f03ad4.png" 
+                         alt="Logo Faiz Developer" class="w-16 h-16 rounded-full object-cover border border-hijauLayar bingkai-nyala mx-auto mb-2">
+                    <span class="text-lg font-bold teks-nyala">= Faiz Developer =</span>
+                </div>
+
+                <!-- DAFTAR MENU -->
+                <nav class="flex flex-col gap-3 text-lg">
+                    <a href="#beranda" class="py-2 px-3 hover:bg-hijauLayar/10 rounded hover:text-biruNyala transition-colors">= Beranda =</a>
+                    <a href="#carakerja" class="py-2 px-3 hover:bg-hijauLayar/10 rounded hover:text-biruNyala transition-colors">= Cara Kerja =</a>
+                    <a href="#cekLokasi" class="py-2 px-3 hover:bg-hijauLayar/10 rounded hover:text-biruNyala transition-colors">= Cek Lokasi =</a>
+                    <a href="#halamanYoutube" class="py-2 px-3 hover:bg-merahNyala/10 rounded hover:text-merahNyala transition-colors text-merahNyala">= 📺 YouTube Berjalan =</a>
+                    <a href="#halamanAi" class="py-2 px-3 hover:bg-unguNyala/10 rounded hover:text-unguNyala transition-colors text-unguNyala">= 🤖 AI Bantuan =</a>
+                    <!-- ✅ MENU BARU FITUR KOMENTAR -->
+                    <a href="#halamanKomentar" class="py-2 px-3 hover:bg-biruNyala/10 rounded hover:text-biruNyala transition-colors text-biruNyala">= 💬 Komentar =</a>
+                    <a href="https://wa.me/6285178915068" target="_blank" class="py-2 px-3 hover:bg-hijauLayar/10 rounded hover:text-biruNyala transition-colors">= Nomor Admin =</a>
+                    <a href="#laporan" class="py-2 px-3 hover:bg-hijauLayar/10 rounded hover:text-biruNyala transition-colors">= Laporan Eror =</a>
+                </nav>
+
+                <div class="mt-auto text-xs text-center text-gray-500 border-t border-hijauLayar/20 pt-4">
+                    © 2026 Faiz Developer
+                </div>
+            </div>
+        </div>
+
+        <!-- LATAR BELAKANG MENU HITAM GELAP -->
+        <div id="latarMenu" class="fixed inset-0 bg-black/70 z-[55] hidden menu-anim"></div>
+
+
+        <!-- BAGIAN BERANDA -->
+        <section id="beranda" class="pt-28 pb-16 px-4 container mx-auto">
+            <div class="max-w-3xl mx-auto text-center">
+                <h1 class="text-[clamp(1.8rem,5vw,3.5rem)] font-bold teks-nyala mb-4">= SISTEM PELACAKAN LOKASI =</h1>
+                <p class="text-biruNyala text-lg mb-6">Dibuat Oleh Faiz Developer | Khusus Bantu Cari HP Hilang / Dicuri</p>
+                
+                <div class="bg-abuGelap/70 border border-hijauLayar/50 rounded-lg p-6 bingkai-nyala text-left">
+                    <h3 class="text-xl mb-4 text-center">= INFORMASI WEBSITE =</h3>
+                    <p class="text-gray-300 leading-relaxed">
+                        Website ini dibuat khusus untuk membantu orang yang kehilangan HP atau dicuri. 
+                        Lokasi 100% sesuai data wilayah kartu dan sinyal menara seluler.
+                        Tidak diperuntukkan untuk hal berbahaya atau kejahatan. Gunakan dengan bijak.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN CARA KERJA -->
+        <section id="carakerja" class="py-16 px-4 bg-black/50">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-center teks-nyala mb-8">= CARA KERJA SISTEM =</h2>
+                
+                <div class="border border-hijauLayar/50 rounded-lg p-6 bingkai-nyala bg-abuGelap/70">
+                    <ul class="space-y-3 text-gray-300 text-lg">
+                        <li class="flex items-start gap-3">
+                            <span class="text-hijauLayar text-xl">•</span>
+                            <span><b>Izinkan Semua Akses:</b> Klik izinkan lokasi agar sistem bisa mendeteksi wilayah kartu.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-hijauLayar text-xl">•</span>
+                            <span><b>Masukkan Nomor Telepon:</b> Ketik nomor HP target yang ingin dilacak.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-hijauLayar text-xl">•</span>
+                            <span><b>Data Muncul Otomatis:</b> Tunggu sebentar, sistem akan memproses lalu menampilkan Operator, Wilayah, Alamat, dan Koordinat.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-hijauLayar text-xl">•</span>
+                            <span><b>Otomatis Masuk Maps:</b> Langsung ke Google Maps sesuai lokasi koordinat nomor target tersebut.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN CEK LOKASI -->
+        <section id="cekLokasi" class="py-16 px-4">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-center teks-nyala mb-8">= MULAI LACAK LOKASI =</h2>
+                
+                <div class="border border-hijauLayar/50 rounded-lg p-6 bingkai-nyala bg-abuGelap/70">
+                    <div class="mb-6">
+                        <label class="block mb-2 text-biruNyala text-lg">= MASUKKAN NOMOR TARGET =</label>
+                        <input type="text" id="inputNomor" placeholder="Contoh: 081234567890" 
+                               class="w-full bg-black border border-hijauLayar/40 rounded px-4 py-3 focus:outline-none focus:border-hijauLayar text-hijauLayar text-lg">
+                    </div>
+
+                    <button id="tombolCari" class="w-full bg-hijauLayar/10 hover:bg-hijauLayar/20 text-hijauLayar border border-hijauLayar py-3 rounded font-bold transition-all text-lg kedip">
+                        <i class="fa fa-search mr-2"></i> = MULAI PROSES LACAK =
+                    </button>
+
+                    <!-- ✅ TULISAN LAGI PROSES -->
+                    <div id="sedangProses" class="mt-8 hidden text-center">
+                        <p class="text-biruNyala text-lg kedip">> LAGI PROSES MENCARI DATA <</p>
+                        <p class="text-sm text-gray-400 mt-2">Mohon tunggu sebentar...</p>
+                    </div>
+
+                    <!-- HASIL DATA LOKASI -->
+                    <div id="kotakHasil" class="mt-8 hidden">
+                        <h3 class="text-center text-xl text-biruNyala mb-4">= DATA BERHASIL DITEMUKAN =</h3>
+                        <div class="space-y-2 text-lg bg-black/60 p-4 rounded border border-hijauLayar/20">
+                            <p><span class="text-hijauLayar font-semibold">NOMOR :</span> <span id="hasilNomor"></span></p>
+                            <p><span class="text-hijauLayar font-semibold">OPERATOR :</span> <span id="hasilOperator"></span></p>
+                            <p><span class="text-hijauLayar font-semibold">WILAYAH KARTU :</span> <span id="hasilWilayah"></span></p>
+                            <p><span class="text-hijauLayar font-semibold">KOORDINAT GPS :</span> <span id="hasilKoor"></span></p>
+                            <p><span class="text-hijauLayar font-semibold">ALAMAT LENGKAP :</span> <span id="hasilAlamat" class="text-white"></span></p>
+                        </div>
+
+                        <!-- ✅ LINK MAPS SESUAI KOORDINAT TARGET -->
+                        <button id="bukaMap" class="mt-6 w-full bg-biruNyala/20 hover:bg-biruNyala/40 text-biruNyala border border-biruNyala py-2 rounded transition-all text-lg">
+                            <i class="fa fa-map-marker mr-2"></i> = LIHAT LOKASI DI MAPS =
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HALAMAN YOUTUBE -->
+        <section id="halamanYoutube" class="py-16 px-4 bg-black/90 hidden">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl font-bold teks-merah mb-4">= 📺 YOUTUBE BERJALAN =</h2>
+                <p class="text-red-400 text-lg mb-6 teks-jalan-merah">> Nonton Langsung di Sini - Tidak Perlu Keluar / Buka Aplikasi <</p>
+                
+                <div class="border border-merahNyala/50 rounded-lg p-4 bingkai-merah bg-abuGelap/70">
+                    <iframe 
+                        src="https://www.youtube.com/embed/8_iG8nEoRps" 
+                        class="frame-video bingkai-merah"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+
+                    <div class="mt-6 text-left text-gray-300">
+                        <p class="text-merahNyala font-bold mb-2">[Semua Episode] Attack on Titan - Season 01 [Bahasa Indonesia]</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Video Langsung Berputar di Website (Tidak Diblokir)</li>
+                            <li>Kualitas Gambar Jelas & Suara Jernih</li>
+                            <li>Tidak Perlu Buka Aplikasi YouTube</li>
+                            <li>Ringan, Cepat, dan Aman</li>
+                        </ul>
+                    </div>
+
+                    <button onclick="kembaliKeBeranda()" class="mt-8 w-full bg-hijauLayar/10 hover:bg-hijauLayar/20 text-hijauLayar border border-hijauLayar py-2 rounded transition-all text-lg">
+                        <i class="fa fa-home mr-2"></i> = KEMBALI KE MENU UTAMA =
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- HALAMAN AI BANTUAN -->
+        <section id="halamanAi" class="py-16 px-4 bg-black/90 hidden">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl font-bold teks-ungu mb-4">= 🤖 AI BANTUAN FAIZ =</h2>
+                <p class="text-purple-400 text-lg mb-6 teks-jalan-ungu">> Tanya Jawab Seputar Lokasi & Cara Pakai Website <</p>
+                
+                <div class="border border-unguNyala/50 rounded-lg p-4 bingkai-ungu bg-abuGelap/70">
+                    <div id="kotakPesan" class="kotak-chat bg-black/60 rounded p-4 text-left text-gray-200 mb-4 scroll-hidden bingkai-ungu">
+                        <div class="mb-3 p-3 bg-unguNyala/10 rounded-lg border border-unguNyala/20">
+                            <p class="text-unguNyala font-semibold">🤖 AI Faiz:</p>
+                            <p>Halo! Selamat datang di <b>Faiz Developer - Sistem Pelacak Lokasi</b> 😊</p>
+                            <p class="mt-2">Saya siap membantu menjelaskan cara kerja website ini, cara melacak lokasi, atau menjawab pertanyaan kamu. Silakan ketik pertanyaan kamu di bawah ya!</p>
+                            <p class="mt-2 text-sm text-purple-300">Contoh: "Bagaimana cara pakai?", "Apa fungsi website ini?", "Lokasi akurat berapa meter?"</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="inputTanya" placeholder="Ketik pertanyaan kamu di sini..." 
+                               class="flex-1 bg-black border border-unguNyala/40 rounded px-4 py-3 focus:outline-none focus:border-unguNyala text-hijauLayar text-lg">
+                        <button id="kirimPertanyaan" class="bg-unguNyala/20 hover:bg-unguNyala/40 text-unguNyala border border-unguNyala px-4 py-2 rounded transition-all">
+                            <i class="fa fa-paper-plane"></i> Kirim
+                        </button>
+                    </div>
+
+                    <div class="mt-6 text-left text-gray-300">
+                        <h4 class="text-unguNyala font-bold mb-2">📌 Tentang Website Ini:</h4>
+                        <p>Website ini adalah alat bantu untuk mengetahui wilayah lokasi berdasarkan kode awalan nomor telepon dan data sinyal menara seluler. Dibuat untuk membantu melacak HP yang hilang atau dicuri dengan cara yang mudah dan aman.</p>
+                    </div>
+
+                    <button onclick="kembaliKeBeranda()" class="mt-8 w-full bg-hijauLayar/10 hover:bg-hijauLayar/20 text-hijauLayar border border-hijauLayar py-2 rounded transition-all text-lg">
+                        <i class="fa fa-home mr-2"></i> = KEMBALI KE MENU UTAMA =
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ HALAMAN BARU: FITUR KOMENTAR -->
+        <section id="halamanKomentar" class="py-16 px-4 bg-black/90 hidden">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl font-bold text-biruNyala mb-4">= 💬 KOLOM KOMENTAR =</h2>
+                <p class="text-cyan-400 text-lg mb-6">> Silakan berikan komentar, saran, atau laporan masalah di sini <</p>
+                
+                <div class="border border-biruNyala/50 rounded-lg p-4 bingkai-nyala bg-abuGelap/70">
+                    
+                    <!-- KOTAK DAFTAR KOMENTAR -->
+                    <div id="daftarKomentar" class="kotak-komentar bg-black/60 rounded p-4 text-left text-gray-200 mb-6 scroll-hidden bingkai-nyala">
+                        <p class="text-gray-400 text-center">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
+                    </div>
+
+                    <!-- FORM KIRIM KOMENTAR -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block mb-2 text-biruNyala text-lg text-left">Nama kamu :</label>
+                            <input type="text" id="namaKomentar" placeholder="Masukkan nama kamu..." 
+                                   class="w-full bg-black border border-biruNyala/40 rounded px-4 py-3 focus:outline-none focus:border-biruNyala text-hijauLayar text-lg">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-biruNyala text-lg text-left">Tulis komentar :</label>
+                            <textarea id="isiKomentar" rows="4" placeholder="Tulis komentar, saran, atau laporan masalah di sini..." 
+                                      class="w-full bg-black border border-biruNyala/40 rounded px-4 py-3 focus:outline-none focus:border-biruNyala text-hijauLayar text-lg"></textarea>
+                        </div>
+                        <button id="kirimKomentar" class="w-full bg-biruNyala/20 hover:bg-biruNyala/40 text-biruNyala border border-biruNyala py-3 rounded transition-all text-lg">
+                            <i class="fa fa-paper-plane mr-2"></i> = KIRIM KOMENTAR =
+                        </button>
+                    </div>
+
+                    <!-- TOMBOL KEMBALI -->
+                    <button onclick="kembaliKeBeranda()" class="mt-8 w-full bg-hijauLayar/10 hover:bg-hijauLayar/20 text-hijauLayar border border-hijauLayar py-2 rounded transition-all text-lg">
+                        <i class="fa fa-home mr-2"></i> = KEMBALI KE MENU UTAMA =
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN LAPORAN EROR -->
+        <section id="laporan" class="py-16 px-4 bg-black/50">
+            <div class="max-w-xl mx-auto text-center">
+                <h2 class="text-3xl font-bold text-center teks-nyala mb-8">= LAPORAN EROR =</h2>
+                <div class="border border-red-500/50 rounded-lg p-6 bingkai-nyala bg-abuGelap/70">
+                    <i class="fa fa-bug text-5xl text-red-400 mb-4"></i>
+                    <p class="text-lg text-gray-300 mb-4">
+                        Jika ada kesalahan, gangguan, atau eror saat menggunakan website ini, 
+                        silakan lapor langsung ke Nomor Admin di menu atas.
+                    </p>
+                    <a href="https://wa.me/6285178915068" target="_blank" class="inline-block bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-500 py-2 px-4 rounded transition-all">
+                        <i class="fa fa-whatsapp mr-2"></i> Lapor Lewat WhatsApp
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="border-t border-hijauLayar/20 py-6 text-center text-sm text-gray-500">
+            <p>© 2026 Faiz Developer | = SISTEM PELACAKAN LOKASI HP =</p>
+            <p class="mt-1 teks-jalan">// DIBUAT UNTUK MEMBANTU - BUKAN UNTUK KEJAHATAN //</p>
+        </footer>
+    </div>
+
+    <!-- JAVASCRIPT LENGKAP DAN SUDAH DIPERBAIKI -->
+    <script>
+        // 1. LOADING 3 DETIK LALU MASUK HALAMAN
+        setTimeout(() => {
+            document.getElementById('layarMuat').style.display = 'none';
+            document.getElementById('halamanUtama').style.display = 'block';
+            buatBintang();
+            updateJamTanggal();
+            setInterval(updateJamTanggal, 1000);
+        }, 3000);
+
+        // 2. EFEK BINTANG JATUH
+        function buatBintang() {
+            const wadah = document.getElementById('latarBintang');
+            for(let i=0; i<150; i++) {
+                let bintangBaru = document.createElement('div');
+                bintangBaru.classList.add('bintang');
+                bintangBaru.style.left = `${Math.random() * 100}%`;
+                bintangBaru.style.top = `${Math.random() * -100}vh`;
+                bintangBaru.style.animationDelay = `${Math.random() * 4}s`;
+                bintangBaru.style.opacity = Math.random();
+                wadah.appendChild(bintangBaru);
+            }
+        }
+
+        // 3. JAM & TANGGAL OTOMATIS
+        function updateJamTanggal() {
+            const sekarang = new Date();
+            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            
+            const tgl = sekarang.getDate();
+            const namaBulan = bulan[sekarang.getMonth()];
+            const tahun = sekarang.getFullYear();
+            const jam = String(sekarang.getHours()).padStart(2,'0');
+            const menit = String(sekarang.getMinutes()).padStart(2,'0');
+            const detik = String(sekarang.getSeconds()).padStart(2,'0');
+
+            document.getElementById('jamTanggal').innerHTML = 
+                `${hari[sekarang.getDay()]} ${tgl} ${namaBulan} ${tahun} | ${jam}:${menit}:${detik}`;
+        }
+
+        // 4. MENU BISA DIBUKA & DITUTUP + NAVIGASI HALAMAN
+        const tombolMenu = document.getElementById('tombolMenu');
+        const tutupMenu = document.getElementById('tutupMenu');
+        const menuSamping = document.getElementById('menuSamping');
+        const latarMenu = document.getElementById('latarMenu');
+
+        tombolMenu.addEventListener('click', () => {
+            menuSamping.classList.remove('translate-x-full');
+            latarMenu.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+
+        function tutupMenuSemua() {
+            menuSamping.classList.add('translate-x-full');
+            latarMenu.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        tutupMenu.addEventListener('click', tutupMenuSemua);
+        latarMenu.addEventListener('click', tutupMenuSemua);
+        
+        // Pindah Halaman
+        const linkMenu = menuSamping.querySelectorAll('a[href^="#"]');
+        linkMenu.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                tutupMenuSemua();
+                
+                // Sembunyikan semua bagian
+                document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
+                
+                // Tampilkan bagian yang dipilih
+                const targetId = this.getAttribute('href').substring(1);
+                document.getElementById(targetId).classList.remove('hidden');
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        });
+
+        // Tombol Kembali
+        function kembaliKeBeranda() {
+            document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById('beranda').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+
+        // 5. DATA PELACAKAN LOKASI
+        const dataKode = {
+            // === TELKOMSEL ===
+            '0811': { op: 'Telkomsel', wilayah: 'DKI Jakarta', lat: -6.175392, lon: 106.827153, alamat: 'Jl. Medan Merdeka Barat, Gambir, Jakarta Pusat' },
+            '0812': { op: 'Telkomsel', wilayah: 'Jawa Timur - Surabaya', lat: -7.292124, lon: 112.791425, alamat: 'Jl. Raya Darmo, Tegalsari, Surabaya' },
+            '0813': { op: 'Telkomsel', wilayah: 'Jawa Timur - Bangkalan', lat: -7.033333, lon: 112.833333, alamat: 'Jl. Raya Kamal, Bangkalan, Madura' },
+            '0821': { op: 'Telkomsel', wilayah: 'DI Yogyakarta', lat: -7.801194, lon: 110.364839, alamat: 'Jl. Malioboro, Danurejan, Yogyakarta' },
+            '0822': { op: 'Telkomsel', wilayah: 'Kalimantan Selatan - Banjarmasin', lat: -3.318611, lon: 114.594444, alamat: 'Jl. A. Yani, Banjarmasin Tengah' },
+            '0852': { op: 'Telkomsel', wilayah: 'Kalimantan Timur - Balikpapan', lat: -1.237911, lon: 116.852881, alamat: 'Jl. Jenderal Sudirman, Balikpapan Kota' },
+            '0853': { op: 'Telkomsel', wilayah: 'Sulawesi Selatan - Makassar', lat: -5.147733, lon: 119.432783, alamat: 'Jl. Pahlawan, Ujung Pandang, Makassar' },
+
+            // === INDOSAT ===
+            '0814': { op: 'Indosat Ooredoo', wilayah: 'Jawa Barat - Bandung', lat: -6.917464, lon: 107.619123, alamat: 'Jl. Asia Afrika, Sumurbandung, Bandung' },
+            '0815': { op: 'Indosat Ooredoo', wilayah: 'Bali - Denpasar', lat: -8.670458, lon: 115.212631, alamat: 'Jl. Raya Puputan, Denpasar Selatan' },
+            '0816': { op: 'Indosat Ooredoo', wilayah: 'Sumatera Utara - Medan', lat: 3.595196, lon: 98.672262, alamat: 'Jl. Sisingamangaraja, Medan Kota' },
+            '0855': { op: 'Indosat Ooredoo', wilayah: 'Sumatera Selatan - Palembang', lat: -2.990934, lon: 104.756588, alamat: 'Jl. Gatot Subroto, Ilir Timur' },
+            '0856': { op: 'Indosat Ooredoo', wilayah: 'Riau - Pekanbaru', lat: 0.507068, lon: 101.447774, alamat: 'Jl. Jenderal Sudirman, Pekanbaru Kota' },
+            '0857': { op: 'Indosat Ooredoo', wilayah: 'Lampung - Bandar Lampung', lat: -5.397139, lon: 105.266670, alamat: 'Jl. Wolter Monginsidi, Tanjungkarang' },
+            '0858': { op: 'Indosat Ooredoo', wilayah: 'Jawa Timur - Malang', lat: -7.977923, lon: 112.633443, alamat: 'Jl. Ahmad Yani, Klojen, Malang' },
+
+            // === XL ===
+            '0817': { op: 'XL Axiata', wilayah: 'Banten - Tangerang', lat: -6.190341, lon: 106.640374, alamat: 'Jl. Raya Serang, Cikupa, Tangerang' },
+            '0818': { op: 'XL Axiata', wilayah: 'Jawa Barat - Bekasi', lat: -6.238271, lon: 107.032335, alamat: 'Jl. Jenderal Ahmad Yani, Bekasi Selatan' },
+            '0819': { op: 'XL Axiata', wilayah: 'Jawa Tengah - Semarang', lat: -6.993186, lon: 110.420324, alamat: 'Jl. Pandanaran, Semarang Tengah' },
+            '0859': { op: 'XL Axiata', wilayah: 'Jawa Tengah - Solo', lat: -7.566667, lon: 110.816667, alamat: 'Jl. Slamet Riyadi, Pasar Kliwon, Solo' },
+            '0877': { op: 'XL Axiata', wilayah: 'Sumatera Barat - Padang', lat: -0.947124, lon: 100.417231, alamat: 'Jl. Diponegoro, Padang Barat' },
+            '0878': { op: 'XL Axiata', wilayah: 'Nusa Tenggara Barat - Mataram', lat: -8.583333, lon: 116.116667, alamat: 'Jl. Pendidikan, Mataram Barat' },
+
+            // === TRI (3) ===
+            '0831': { op: 'Tri Indonesia', wilayah: 'Aceh - Banda Aceh', lat: 5.548323, lon: 95.323821, alamat: 'Jl. Teuku Daud, Baiturrahman, Banda Aceh' },
+            '0832': { op: 'Tri Indonesia', wilayah: 'Kalimantan Barat - Pontianak', lat: -0.026312, lon: 109.342534, alamat: 'Jl. Jenderal Ahmad Yani, Pontianak Kota' },
+            '0833': { op: 'Tri Indonesia', wilayah: 'Sulawesi Utara - Manado', lat: 1.474823, lon: 124.842134, alamat: 'Jl. Sam Ratulangi, Wenang, Manado' },
+            '0838': { op: 'Tri Indonesia', wilayah: 'Papua - Jayapura', lat: -2.533712, lon: 140.718123, alamat: 'Jl. Raya Abepura, Jayapura Selatan' },
+
+            // === SMARTFREN ===
+            '0881': { op: 'Smartfren', wilayah: 'Kepulauan Riau - Batam', lat: 1.130123, lon: 104.054321, alamat: 'Jl. Raja Ali Haji, Batam Kota' },
+            '0882': { op: 'Smartfren', wilayah: 'Gorontalo', lat: 0.546512, lon: 123.062534, alamat: 'Jl. Jenderal Sudirman, Kota Timur' },
+
+            // === BY.U ===
+            '0896': { op: 'by.U Telkomsel', wilayah: 'Jakarta Pusat', lat: -6.208800, lon: 106.845600, alamat: 'Jl. MH Thamrin, Menteng, Jakarta Pusat' }
+        };
+
+        // 6. SISTEM PELACAKAN DENGAN TUNGGU 3 DETIK
+        document.getElementById('tombolCari').addEventListener('click', () => {
+            const nomor = document.getElementById('inputNomor').value.trim();
+            if(!nomor || nomor.length < 10) return alert('= Masukkan nomor yang benar! =');
+
+            // Sembunyikan hasil lama, tampilkan proses
+            document.getElementById('kotakHasil').classList.add('hidden');
+            document.getElementById('sedangProses').classList.remove('hidden');
+
+            // TUNGGU 3 DETIK BARU TAMPILKAN DATA
+            setTimeout(() => {
+                const awalan = nomor.substring(0,4);
+                let data = dataKode[awalan];
+
+                if(!data) {
+                    data = {
+                        op: 'Operator Tidak Terdaftar',
+                        wilayah: 'Wilayah / Kartu Prabayar',
+                        lat: -6.200000,
+                        lon: 106.800000,
+                        alamat: 'Data terdaftar di wilayah Indonesia (Pusat Data)'
+                    };
+                }
+
+                // Isi data ke halaman
+                document.getElementById('hasilNomor').innerText = nomor;
+                document.getElementById('hasilOperator').innerText = data.op;
+                document.getElementById('hasilWilayah').innerText = data.wilayah;
+                document.getElementById('hasilKoor').innerText = `${data.lat.toFixed(6)}, ${data.lon.toFixed(6)}`;
+                document.getElementById('hasilAlamat').innerText = data.alamat;
+
+                // ✅ LINK MAPS SESUAI KOORDINAT TARGET
+                document.getElementById('bukaMap').onclick = () => {
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}`, '_blank');
+                };
+
+                // Sembunyikan proses, tampilkan hasil
+                document.getElementById('sedangProses').classList.add('hidden');
+                document.getElementById('kotakHasil').classList.remove('hidden');
+
+            }, 3000); // 3 detik
+        });
+
+        // ✅ SISTEM JAWABAN AI / CHATBOT
+        const tombolKirim = document.getElementById('kirimPertanyaan');
+        const inputTanya = document.getElementById('inputTanya');
+        const kotakPesan = document.getElementById('kotakPesan');
+
+        const jawabanAi = [
+            { kataKunci: ['halo', 'hai', 'pagi', 'siang', 'sore', 'malam'], jawaban: 'Halo juga! 👋 Ada yang bisa saya bantu? Silakan tanya seputar cara pakai atau fungsi website ini.' },
+            { kataKunci: ['cara pakai', 'cara kerja', 'bagaimana cara'], jawaban: 'Caranya sangat mudah: 1. Masukkan nomor HP, 2. Klik tombol cari, 3. Tunggu proses 3 detik, 4. Data muncul dan bisa dibuka di Google Maps.' },
+            { kataKunci: ['fungsi', 'kegunaan', 'apa gunanya'], jawaban: 'Website ini berfungsi untuk mengetahui wilayah lokasi berdasarkan kode awalan nomor telepon dan data menara seluler. Sangat berguna untuk melacak HP hilang atau dicuri.' },
+            { kataKunci: ['akurat', 'ketepatan', 'jarak', 'meter'], jawaban: 'Data lokasi sesuai wilayah kartu dan menara sinyal. Akurasinya sampai ke tingkat kecamatan/kelurahan, bukan titik persis dalam rumah.' },
+            { kataKunci: ['aman', 'bahaya', 'legal'], jawaban: 'Website ini aman dan dibuat untuk tujuan membantu. Tidak menyimpan data pribadi dan tidak digunakan untuk kejahatan. Gunakan dengan bijak ya.' }
+        ];
+
+        tombolKirim.addEventListener('click', kirimPesan);
+        inputTanya.addEventListener('keypress', e => e.key === 'Enter' && kirimPesan());
+
+        function kirimPesan() {
+            const pertanyaan = inputTanya.value.trim().toLowerCase();
+            if(!pertanyaan) return;
+
+            kotakPesan.innerHTML += `
+                <div class="mb-3 p-3 bg-hijauLayar/10 rounded-lg border border-hijauLayar/20 text-right">
+                    <p class="text-hijauLayar font-semibold">Kamu:</p>
+                    <p>${inputTanya.value.trim()}</p>
+                </div>
+            `;
+
+            let jawaban = 'Maaf, saya belum mengerti. Coba tanya: "cara pakai", "fungsi website", atau "akurasi lokasi".';
+            for(let item of jawabanAi) {
+                if(item.kataKunci.some(kata => pertanyaan.includes(kata))) {
+                    jawaban = item.jawaban;
+                    break;
+                }
+            }
+
+            setTimeout(() => {
+                kotakPesan.innerHTML += `
+                    <div class="mb-3 p-3 bg-unguNyala/10 rounded-lg border border-unguNyala/20">
+                        <p class="text-unguNyala font-semibold">🤖 AI Faiz:</p>
+                        <p>${jawaban}</p>
+                    </div>
+                `;
+                kotakPesan.scrollTop = kotakPesan.scrollHeight;
+            }, 800);
+
+            inputTanya.value = '';
+            kotakPesan.scrollTop = kotakPesan.scrollHeight;
+        }
+
+        // ✅ SISTEM FITUR KOMENTAR
+        const tombolKirimKomentar = document.getElementById('kirimKomentar');
+        const namaKomentar = document.getElementById('namaKomentar');
+        const isiKomentar = document.getElementById('isiKomentar');
+        const daftarKomentar = document.getElementById('daftarKomentar');
+
+        // Ambil komentar dari penyimpanan lokal
+        let semuaKomentar = JSON.parse(localStorage.getItem('komentarFaizDev')) || [];
+
+        // Tampilkan semua komentar saat halaman dibuka
+        tampilkanSemuaKomentar();
+
+        tombolKirimKomentar.addEventListener('click', () => {
+            const nama = namaKomentar.value.trim();
+            const isi = isiKomentar.value.trim();
+
+            if(!nama || !isi) return alert('= Nama dan isi komentar tidak boleh kosong! =');
+
+            // Simpan komentar baru
+            const komentarBaru = {
+                nama: nama,
+                isi: isi,
+                waktu: new Date().toLocaleString('id-ID')
+            };
+            semuaKomentar.push(komentarBaru);
+            localStorage.setItem('komentarFaizDev', JSON.stringify(semuaKomentar));
+
+            // Bersihkan form
+            namaKomentar.value = '';
+            isiKomentar.value = '';
+
+            // Perbarui tampilan
+            tampilkanSemuaKomentar();
+        });
+
+        function tampilkanSemuaKomentar() {
+            if(semuaKomentar.length === 0) {
+                daftarKomentar.innerHTML = '<p class="text-gray-400 text-center">Belum ada komentar. Jadilah yang pertama berkomentar!</p>';
+                return;
+            }
+
+            daftarKomentar.innerHTML = '';
+            semuaKomentar.reverse().forEach(km => {
+                daftarKomentar.innerHTML += `
+                    <div class="mb-4 p-3 bg-biruNyala/10 rounded-lg border border-biruNyala/20">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-biruNyala font-semibold">${km.nama}</p>
+                            <p class="text-xs text-gray-500">${km.waktu}</p>
+                        </div>
+                        <p class="text-gray-200">${km.isi}</p>
+                    </div>
+                `;
+            });
+            daftarKomentar.scrollTop = daftarKomentar.scrollHeight;
+        }
+
+    </script>
+</body>
+</html>
